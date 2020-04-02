@@ -14,6 +14,8 @@ import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
  */
 @SpringBootApplication
 @EnableEurekaClient
+//改用自己配置的负载均衡规则
+//@RibbonClient(name="CLOUD-PAYMENT-SERVICE",configuration= MySelfRule.class)
 public class OrderMain80 {
     public static void main(String[] args) {
         SpringApplication.run(OrderMain80.class,args);
