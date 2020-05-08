@@ -2,7 +2,10 @@ package com.atwyy.springcloud.controller;
 
 import com.atwyy.springcloud.entities.CommonResult;
 import com.atwyy.springcloud.entities.Payment;
+import com.atwyy.springcloud.lb.LoadBalancer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
+import java.net.URI;
+import java.util.List;
 
 /**
  * Created by idea
@@ -29,6 +34,11 @@ public class OrderController {
     @Resource
     private RestTemplate restTemplate;
 
+    @Resource
+    private LoadBalancer loadBalancer;
+    @Resource
+    private DiscoveryClient discoveryClient;
+
     @GetMapping("/consumer/payment/create")
     public CommonResult<Payment> create(Payment payment){
         return restTemplate.postForObject(PAYMENT_URL+"/payment/create",payment,CommonResult.class);
@@ -46,6 +56,18 @@ public class OrderController {
         }else {
             return new CommonResult<>(444,"操作失败");
         }
+    }
+    @GetMapping(value = "/consumer/payment/lb")
+    public String getPaymentLB(){
+        //得到名为CLOUD-PAYMENT-SERVICE的所有服务的机器数
+        List<ServiceInstance> instances = discoveryClient.getInstances("CLOUD-PAYMENT-SERVICE");
+        if (instances == null || instances.size() <= 0) {//如果没有，返回空
+            return null;
+        }
+        //调用自定义的负载均衡规则
+        ServiceInstance serviceInstance = loadBalancer.instances(instances);
+        URI uri = serviceInstance.getUri();
+        return restTemplate.getForObject(uri+"/payment/lb",String.class);
     }
 
 }
